@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプルオンラインコンパス</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            font-family: sans-serif;
+        }
+        .compass-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #compass {
+            width: 300px;
+            height: 300px;
+            transition: transform 0.1s ease-out;
+        }
+        .btn {
+            margin-top: 30px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e60012;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .note {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="compass-container">
+        <div id="compass">
+            <svg width="300" height="300" viewBox="0 0 300 300">
+                <circle cx="150" cy="150" r="140" fill="#fff" stroke="#000" stroke-width="6"/>
+                <circle cx="150" cy="150" r="80" fill="none" stroke="#000" stroke-width="6"/>
+
+                <text x="150" y="40" font-size="28" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(0 150 40)">北</text>
+                <text x="228" y="72" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(45 228 72)">北東</text>
+                <text x="260" y="150" font-size="28" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(90 260 150)">東</text>
+                <text x="228" y="228" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(135 228 228)">南東</text>
+                <text x="150" y="260" font-size="28" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(180 150 260)">南</text>
+                <text x="72" y="228" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(225 72 228)">南西</text>
+                <text x="40" y="150" font-size="28" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(270 40 150)">西</text>
+                <text x="72" y="72" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="central" transform="rotate(315 72 72)">北西</text>
+
+                <polygon points="125,150 150,55 175,150" fill="red" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+                <polygon points="125,150 150,245 175,150" fill="#fff" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+                
+                <circle cx="150" cy="150" r="14" fill="#000"/>
+            </svg>
+        </div>
+    </div>
+
+    <button id="start-btn" class="btn">コンパスを起動する</button>
+    <p class="note" id="note-text">※スマホの傾きセンサーを使用するため、起動ボタンを押して許可してください。<br>※セキュリティの都合上、HTTPS環境（またはローカル）でのみ動作します。</p>
+
+    <script>
+        const compass = document.getElementById('compass');
+        const startBtn = document.getElementById('start-btn');
+        const noteText = document.getElementById('note-text');
+
+        // ボタンクリックでセンサーの使用許可を求める（iOS 13+対応のため必須）
+        startBtn.addEventListener('click', () => {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            startCompass();
+                        } else {
+                            alert('センサーへのアクセスが許可されませんでした。設定からブラウザのアクセスを許可してください。');
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Androidや古いiOSの場合はそのまま起動
+                startCompass();
+            }
+        });
+
+        function startCompass() {
+            startBtn.style.display = 'none';
+            noteText.style.display = 'none';
+            
+            // デバイスの向きを取得するイベントリスナー
+            window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+            window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+
+        function handleOrientation(e) {
+            let heading = null;
+
+            // iOSとAndroidで方位の取得方法が異なるため分岐
+            if (e.webkitCompassHeading) {
+                // iOS用
+                heading = e.webkitCompassHeading;
+            } else if (e.absolute === true && e.alpha !== null) {
+                // Android用
+                heading = 360 - e.alpha;
+            }
+
+            // 取得した方角に合わせてコンパス全体を回転させる
+            if (heading !== null) {
+                compass.style.transform = `rotate(${-heading}deg)`;
+            }
+        }
+    </script>
+</body>
+</html>
